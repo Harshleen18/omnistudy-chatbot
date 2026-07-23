@@ -1,6 +1,5 @@
 import streamlit as st
-from google import genai
-from google.genai import types
+import google.generativeai as genai
 from gtts import gTTS
 import pandas as pd
 import io
@@ -50,8 +49,9 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ---------------- 3. AI COGNITIVE BRAIN INITIALIZATION ----------------
-api_key = st.secrets.get("GEMINI_API_KEY", "YOUR_FALLBACK_API_KEY")
-client = genai.Client(api_key=api_key)
+# Using configure() natively solves the 401 unauthenticated issue with your specific 'AQ.' API key
+api_key = st.secrets.get("GEMINI_API_KEY", "")
+genai.configure(api_key=api_key)
 
 # ---------------- 4. LEFT SIDEBAR NAVIGATION MENU ----------------
 with st.sidebar:
@@ -138,40 +138,35 @@ elif menu_selection == "Virtual Classroom":
         st.rerun()
 
     # Dynamic Generator Context Logic processing the latest prompt entry
-    if st.session_state.messages[-1]["role"] == "user":
+    if len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] == "user":
         with st.spinner("AI Teacher is thinking..."):
             try:
-                # 1. Resolve active persona matching your dropdown options
                 persona = st.session_state.get("personality", "Calm Teacher")
-                system_instruction = f"You are an expert academic tutor operating in a '{persona}' persona mode. Explain concepts clearly according to your persona rules."
+                system_instruction = f"You are an expert academic tutor operating in a '{persona}' persona mode. Explain concepts clearly and stay completely in character."
                 
-                # 2. Map all past elements into the native SDK format
-                contents_payload = []
-                for msg in st.session_state.messages:
-                    role_type = "user" if msg["role"] == "user" else "model"
-                    contents_payload.append(
-                        types.Content(
-                            role=role_type,
-                            parts=[types.Part.from_text(text=msg["content"])]
-                        )
-                    )
+                # Format conversation history for the legacy structural layout requirement
+                formatted_history = []
+                for msg in st.session_state.messages[:-1]:
+                    formatted_history.append({
+                        "role": "user" if msg["role"] == "user" else "model",
+                        "parts": [msg["content"]]
+                    })
                 
-                # 3. Request completion from Gemini using the structured API configuration
-                response = client.models.generate_content(
-                    model='gemini-2.5-flash',
-                    contents=contents_payload,
-                    config=types.GenerateContentConfig(
-                        system_instruction=system_instruction,
-                        temperature=0.7
-                    )
+                # Initialize the generative framework model context safely
+                model = genai.GenerativeModel(
+                    model_name='gemini-1.5-flash',
+                    system_instruction=system_instruction
                 )
                 
-                # 4. Save response text and trigger application rerun
+                # Initiate communication socket sequence pipeline
+                chat = model.start_chat(history=formatted_history)
+                response = chat.send_message(st.session_state.messages[-1]["content"])
+                
                 if response.text:
                     st.session_state.messages.append({"role": "assistant", "content": response.text})
                     st.rerun()
                 else:
-                    st.error("Received empty response from the AI brain.")
+                    st.error("Received an empty response from the AI brain.")
                     
             except Exception as e:
                 st.error(f"Failed to communicate with AI Faculty Brain: {str(e)}")
@@ -179,4 +174,5 @@ elif menu_selection == "Virtual Classroom":
 else:
     st.markdown(f"## 🛠️ {menu_selection} Workspace")
     st.info("This sub-module workspace interface layout is currently under construction.")
+
 
