@@ -41,7 +41,7 @@ st.markdown(f"""
     div.stButton > button:first-child {{
         background: {accent} !important; color: #FFFFFF !important; border-radius: 35px !important; padding: 12px 32px !important; font-weight: 800 !important; border: 3px solid {border} !important; font-size: 1.1rem !important;
     }}
-    div.stButton > button:first-child:hover {{ background-color: #000000 !important; color: #FFFFFF !important; transform: translateY(-1px); }}
+    div.stButton > button:first-child:hover {{ background: #000000 !important; color: #FFFFFF !important; transform: translateY(-1px); }}
     </style>
 """, unsafe_allow_html=True)
 
@@ -91,7 +91,7 @@ if menu_selection == "Dashboard":
     d_col3.metric("Recent Activities Logged", "12 Lessons", "✅ Highly Active")
     
     st.markdown("### 🎯 AI Recommendations & Learning Journey Insights")
-    st.info("💡 **AI Teacher Insight:** Your diagnostic data shows vulnerability in **'Debit Bookkeeping'**. Click on the 'Quizzes & Tests' section to run a customized practice mock exam.")
+    st.info("💡 **AI Teacher Insight:** Your diagnostic data shows vulnerability in 'Debit Bookkeeping'. Click on the 'Quizzes & Tests' section to run a customized practice mock exam.")
 
 # --- COMPONENT 2: CUSTOMIZABLE AI TEACHER CORE ---
 elif menu_selection == "AI Teacher Core":
@@ -99,7 +99,7 @@ elif menu_selection == "AI Teacher Core":
     
     t_col1, t_col2 = st.columns(2)
     with t_col1:
-        personality = st.selectbox("Select Teacher Personality Matrix Type:", [
+        personality = st.selectbox("Choose Faculty Persona Profile:", [
             "Calm Teacher", "Friendly Teacher", "Strict Teacher", "Professor Mode", 
             "Storytelling Teacher", "Exam Coach", "Motivational Mentor", "Scientific Instructor", "Fairy Tale Explainer"
         ])
@@ -171,5 +171,4 @@ elif menu_selection == "Virtual Classroom":
                     config=types.GenerateContentConfig(system_instruction=tutor_blueprint, temperature=0.3)
                 )
 
-    
 
