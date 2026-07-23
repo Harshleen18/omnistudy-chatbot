@@ -23,6 +23,8 @@ if "weak_areas" not in st.session_state: st.session_state.weak_areas = {"Math Fo
 if "flash_flipped" not in st.session_state: st.session_state.flash_flipped = False
 if "quiz_score" not in st.session_state: st.session_state.quiz_score = None
 if "ui_theme" not in st.session_state: st.session_state.ui_theme = "Cyber Dark (High Contrast)"
+if "personality" not in st.session_state: st.session_state.personality = "Calm Teacher"
+if "voice_accent" not in st.session_state: st.session_state.voice_accent = "Indian Standard Accent"
 
 # ---------------- 2. STARK HIGH-CONTRAST THEME MANAGEMENT ----------------
 if "White" in st.session_state.ui_theme:
@@ -48,7 +50,6 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ---------------- 3. AI COGNITIVE BRAIN INITIALIZATION ----------------
-# Secure API configuration via st.secrets (Fallback string provided for safety)
 api_key = st.secrets.get("GEMINI_API_KEY", "YOUR_FALLBACK_API_KEY")
 client = genai.Client(api_key=api_key)
 
@@ -89,7 +90,6 @@ elif menu_selection == "AI Teacher Set":
     st.markdown("## 🧑‍🏫 Personalize Your Virtual AI Faculty")
     t_col1, t_col2 = st.columns(2)
     with t_col1:
-        # Saving system selections to session state so the chatbot engine can read them dynamically
         st.session_state.personality = st.selectbox("Choose Faculty Persona Profile:", [
             "Calm Teacher", "Friendly Teacher", "Strict Teacher", "Professor Mode", 
             "Storytelling Teacher", "Exam Coach", "Motivational Mentor", "Scientific Instructor", "Fairy Tale Explainer"
@@ -126,14 +126,14 @@ elif menu_selection == "Virtual Classroom":
             if st.button("🔊 Play Voice Lecture", key=f"audio_run_{idx}"):
                 with st.spinner("Generating audio transcription..."):
                     clean_str = msg["content"].replace("$", "").replace("#", "").replace("*", "")
-                    tts = gTTS(text=clean_str, lang='en', tld='co.in' if "Indian" in st.session_state.get("voice_accent", "Indian") else 'co.uk')
+                    tld_val = 'co.in' if "Indian" in st.session_state.get("voice_accent", "Indian") else 'co.uk'
+                    tts = gTTS(text=clean_str, lang='en', tld=tld_val)
                     audio_fp = io.BytesIO()
                     tts.write_to_fp(audio_fp)
                     st.audio(audio_fp.getvalue(), format="audio/mp3", autoplay=True)
 
     # Chat execution form logic using Native Streamlit primitives
     if user_query := st.chat_input("Ask your virtual teacher a question..."):
-        # Append student message to state memory log instantly
         st.session_state.messages.append({"role": "user", "content": user_query})
         st.rerun()
 
@@ -141,35 +141,42 @@ elif menu_selection == "Virtual Classroom":
     if st.session_state.messages[-1]["role"] == "user":
         with st.spinner("AI Teacher is thinking..."):
             try:
-                # Capture current classroom parameters configured inside "AI Teacher Set" workspace
-                active_persona = st.session_state.get("personality", "Friendly Teacher")
-                system_instruction = f"You are an expert online instructor teaching with a {active_persona} persona tone."
+                # 1. Resolve active persona matching your dropdown options
+                persona = st.session_state.get("personality", "Calm Teacher")
+                system_instruction = f"You are an expert academic tutor operating in a '{persona}' persona mode. Explain concepts clearly according to your persona rules."
                 
-                # Format systemic chat history structures into Google's SDK requirements
-                history_contents = []
-                for m in st.session_state.messages[:-1]:
-                    role_id = "user" if m["role"] == "user" else "model"
-                    history_contents.append(types.Content(role=role_id, parts=[types.Part.from_text(text=m["content"])]))
+                # 2. Map all past elements into the native SDK format
+                contents_payload = []
+                for msg in st.session_state.messages:
+                    role_type = "user" if msg["role"] == "user" else "model"
+                    contents_payload.append(
+                        types.Content(
+                            role=role_type,
+                            parts=[types.Part.from_text(text=msg["content"])]
+                        )
+                    )
                 
-                # Request inference response from Gemini model tier
+                # 3. Request completion from Gemini using the structured API configuration
                 response = client.models.generate_content(
                     model='gemini-2.5-flash',
-                    contents=st.session_state.messages[-1]["content"],
+                    contents=contents_payload,
                     config=types.GenerateContentConfig(
                         system_instruction=system_instruction,
-                        temperature=0.7,
+                        temperature=0.7
                     )
                 )
                 
-                # Append finalized model stream answer back into global execution state
-                st.session_state.messages.append({"role": "assistant", "content": response.text})
-                st.rerun()
-                
+                # 4. Save response text and trigger application rerun
+                if response.text:
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                    st.rerun()
+                else:
+                    st.error("Received empty response from the AI brain.")
+                    
             except Exception as e:
-                st.error(f"Engine connection failed: {e}")
+                st.error(f"Failed to communicate with AI Faculty Brain: {str(e)}")
 
 else:
     st.markdown(f"## 🛠️ {menu_selection} Workspace")
-    st.info("Module layout container placeholder. Code logic implementation context pending.")
-
+    st.info("This sub-module workspace interface layout is currently under construction.")
 
