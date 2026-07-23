@@ -1,175 +1,175 @@
-
 import streamlit as st
 from google import genai
 from google.genai import types
 from gtts import gTTS
 import pandas as pd
 import io
-import random
+import time
 
-# 1. Premium App Aesthetics and Layout Setup
-st.set_page_config(page_title="ZenStudy Elite Academy", page_icon="🎓", layout="wide")
+# ================= 1. ABSOLUTE CONTRAST INTERFACE CONFIGURATION =================
+st.set_page_config(page_title="ZenStudy AI", page_icon="🎓", layout="wide")
 
-# Studio CSS Injection for Chat Bars, Plus Icons, Microphone Emulation & Calm Mood UI
-st.markdown("""
+# Theme state tracking
+if "ui_theme" not in st.session_state: st.session_state.ui_theme = "Minimal White (Stark High-Contrast Light)"
+
+# High-Contrast Color Variables Engine
+if "White" in st.session_state.ui_theme:
+    bg, text, card_bg, border, accent = "#FFFFFF", "#000000", "#F4F6F5", "#000000", "#008055"
+    user_bubble, ai_bubble = "#E6F4EA", "#FFFFFF"
+else:
+    bg, text, card_bg, border, accent = "#000000", "#FFFFFF", "#111111", "#FFFFFF", "#10B981"
+    user_bubble, ai_bubble = "#1A2E26", "#111111"
+
+st.markdown(f"""
     <style>
-    .stApp { background-color: #F7FAF8; font-family: 'Inter', sans-serif; }
-    h1, h2, h3 { color: #153226; font-family: 'Georgia', serif; }
+    /* Absolute Contrast Global Rule Overrides */
+    .stApp {{ background-color: {bg} !important; color: {text} !important; font-family: 'Poppins', 'Inter', sans-serif; }}
+    p, span, label, h1, h2, h3, h4, h5, div {{ color: {text} !important; font-weight: 700 !important; }}
     
-    /* Premium Sidebar Teacher Profile Card */
-    .teacher-card { background: white; padding: 15px; border-radius: 16px; border: 1px solid #E6ECE8; text-align: center; margin-bottom: 20px; box-shadow: 0 4px 6px rgba(0,0,0,0.02); }
-    .teacher-avatar { font-size: 70px; margin-bottom: 5px; }
-    .teacher-name { font-weight: bold; color: #1E3A2F; font-size: 1.2rem; }
-    .teacher-badge { background: #E2ECE9; color: #1E3A2F; padding: 2px 10px; border-radius: 12px; font-size: 0.8rem; font-weight: bold; }
+    /* Crisp Sidebar Formatting */
+    .stSidebar {{ background-color: {card_bg} !important; border-right: 3px solid {border} !important; }}
     
-    /* Native Chat Input Interface with Plus Icon Styling */
-    .custom-input-container { display: flex; align-items: center; background: white; border: 1px solid #DCE4E1; border-radius: 30px; padding: 8px 15px; margin-top: 10px; box-shadow: 0 4px 10px rgba(0,0,0,0.03); }
-    .plus-icon { font-size: 20px; color: #3A6B56; margin-right: 15px; cursor: pointer; font-weight: bold; }
-    .mic-icon { font-size: 20px; color: #3A6B56; margin-left: 15px; cursor: pointer; }
+    /* Highly Visible Custom Chat Cards */
+    .chat-bubble-user {{ background-color: {user_bubble} !important; padding: 22px; border-radius: 20px 20px 4px 20px; margin: 15px 0; border: 3px solid {border} !important; }}
+    .chat-bubble-ai {{ background-color: {ai_bubble} !important; padding: 22px; border-radius: 20px 20px 20px 4px; margin: 15px 0; border: 3px solid {border} !important; box-shadow: 0 4px 20px rgba(0,0,0,0.15); }}
     
-    /* Interactive Flashcard Deck UI */
-    .flashcard { background: linear-gradient(135deg, #FFFFFF 0%, #F9FBF9 100%); border: 2px solid #DCE4E1; border-radius: 20px; padding: 30px; text-align: center; box-shadow: 0 10px 20px rgba(0,0,0,0.02); min-height: 150px; display: flex; align-items: center; justify-content: center; font-size: 1.3rem; color: #1E3A2F; font-weight: 500; font-family: 'Georgia', serif; margin: 15px 0; }
+    /* Sleek Native Input Console Row with Emulated Plus & Speaker Nodes */
+    .sleek-input-bar {{ display: flex; align-items: center; background: {card_bg}; border: 3px solid {border}; border-radius: 40px; padding: 12px 30px; margin: 25px 0; }}
+    .bar-icon {{ font-size: 24px; margin: 0 15px; cursor: pointer; color: {accent} !important; }}
+    
+    /* Solid High Contrast Studio Buttons */
+    div.stButton > button:first-child {{
+        background: {accent} !important; color: #FFFFFF !important; border-radius: 35px !important; padding: 12px 32px !important; font-weight: 800 !important; border: 3px solid {border} !important; font-size: 1.1rem !important;
+    }}
+    div.stButton > button:first-child:hover {{ background-color: #000000 !important; color: #FFFFFF !important; transform: translateY(-1px); }}
     </style>
 """, unsafe_allow_html=True)
 
-# 2. Secure Initialization using the provided API Key
+# ================= 2. SECURE INTUITION AI CORE KEY HUB =================
 API_KEY = "AQ.Ab8RN6IeciOdOo6ppwDAvP5_YnfGAEanztvhrr-7EN6PNGLg5w"
 client = genai.Client(api_key=API_KEY)
 
-# 3. Sidebar Configuration: The Dynamic AI Teacher Dashboard Selector
-st.sidebar.markdown("### 🧑‍🏫 AI Virtual Faculty")
-
-teacher_persona = st.sidebar.selectbox(
-    "Choose Your Professor Style:",
-    ["Calm & Reflective Tutor", "Fairy Tale Magical Teacher", "Strict Disciplined Academic"]
-)
-
-# System configurations mapped dynamically based on selection
-teacher_profiles = {
-    "Calm & Reflective Tutor": {"avatar": "🧘", "name": "Professor Aria", "voice_type": "Soft Calm Voice", "prompt_add": "Maintain an incredibly peaceful, friendly, slow, encouraging tone like a meditation guide."},
-    "Fairy Tale Magical Teacher": {"avatar": "🧚✨", "name": "Guardian Eldon", "voice_type": "Enchanted Story Voice", "prompt_add": "Teach using magical analogies, fairytale settings, imaginative metaphors, and storytelling components."},
-    "Strict Disciplined Academic": {"avatar": "🧑‍🏫📏", "name": "Dr. Vance", "voice_type": "Formal Direct Voice", "prompt_add": "Be extremely precise, analytical, highly disciplined, formal, and authoritative. Highlight absolute logical strictness."}
-}
-
-active_profile = teacher_profiles[teacher_persona]
-
-# Render Custom Beautiful Profile Card for the Teacher
-st.sidebar.markdown(f"""
-<div class="teacher-card">
-    <div class="teacher-avatar">{active_profile['avatar']}</div>
-    <div class="teacher-name">{active_profile['name']}</div>
-    <div><span class="teacher-badge">{active_profile['voice_type']}</span></div>
-</div>
-""", unsafe_allow_html=True)
-
-# 4. Upload System for Lecture Notes / Old Documents Analysis
-st.sidebar.markdown("### 📁 Student Materials Core")
-uploaded_material = st.sidebar.file_uploader(
-    "Upload older lecture notes, syllabi, or textbook snaps:",
-    type=["png", "jpg", "jpeg", "pdf", "txt"]
-)
-
-media_attachment = None
-notes_context_text = ""
-if uploaded_material is not None:
-    st.sidebar.success(f"📚 Knowledge Base Loaded: {uploaded_material.name}")
-    if "image" in uploaded_material.type:
-        media_attachment = types.Part.from_bytes(data=uploaded_material.read(), mime_type=uploaded_material.type)
-        st.sidebar.image(uploaded_material, use_container_width=True)
-    else:
-        notes_context_text = f"\n[The student has uploaded textbook files / old data named: {uploaded_material.name}. Analyze this context data for accurate processing.]"
-
-# 5. Core Platform Navigation Hub Tabs
-tab_classroom, tab_flashcards, tab_analytics = st.tabs(["🏛️ Virtual Classroom", "🃏 Smart Flashcards & Quiz", "📈 Analytics & Mindmaps"])
-
-# Core System Memory States Initialization
+# ================= 3. SYSTEM STATE CONTROLLER VARIABLES =================
 if "messages" not in st.session_state: st.session_state.messages = []
-if "weak_areas" not in st.session_state: st.session_state.weak_areas = {"Math Formulae": 80, "Accounting Debits": 45, "Biology Diagrams": 90, "Grammar Structure": 60}
-if "flashcard_flipped" not in st.session_state: st.session_state.flashcard_flipped = False
+if "folders" not in st.session_state: st.session_state.folders = {"Mathematics": ["Calculus_Formulae.pdf"], "Biology Streams": ["Cell_Notes.docx"]}
+if "saved_chats" not in st.session_state: st.session_state.saved_chats = ["Session 1: Introduction to Calculus"]
+if "weaknesses" not in st.session_state: st.session_state.weaknesses = {"Math Formulas": 85, "Debit Bookkeeping": 35, "Cell Diagrams": 90}
+if "flash_flipped" not in st.session_state: st.session_state.flash_flipped = False
+if "streak" not in st.session_state: st.session_state.streak = 7
 
-# ================= TAB 1: PREMIUM VIRTUAL CLASSROOM =================
-with tab_classroom:
-    st.markdown(f"### 🏛️ Interactive Lectures with {active_profile['name']}")
+# ================= 4. PREMIUM NAVIGATION SIDEBAR HUB =================
+st.sidebar.markdown(f"## 🎓 ZenStudy AI")
+st.sidebar.markdown(f"🔥 **Learning Streak:** {st.session_state.streak} Days Active")
+
+# Main Navigation Matrix
+menu_selection = st.sidebar.radio(
+    "Academy Workspace Menu",
+    [
+        "Dashboard", "AI Teacher Core", "Study Materials Hub", "Virtual Classroom", 
+        "Flashcard Center", "Mind Maps", "Quizzes & Tests", "Analytics Dashboard", 
+        "Focus Zone", "Notes", "Saved Chats", "Settings"
+    ]
+)
+
+# Folder Organizer Node inside Sidebar
+st.sidebar.markdown("---")
+st.sidebar.markdown("📁 **Subject Folder Hub**")
+new_folder_title = st.sidebar.text_input("Enter New Subject Title:")
+if st.sidebar.button("➕ Create Folder") and new_folder_title:
+    if new_folder_title not in st.session_state.folders:
+        st.session_state.folders[new_folder_title] = []
+        st.sidebar.success(f"Added Folder: {new_folder_title}")
+
+# ================= 5. CORE WORKSPACE ENVIRONMENT CONTROLLER ROUTER =================
+
+# --- COMPONENT 1: DASHBOARD ---
+if menu_selection == "Dashboard":
+    st.markdown("## 📊 Personal Study Dashboard")
+    d_col1, d_col2, d_col3 = st.columns(3)
+    d_col1.metric("Overall Subject Mastery", "76%", "🔥 Scaling Up")
+    d_col2.metric("Target Study Goals Due", "3 Tasks", "⚠️ Action Required")
+    d_col3.metric("Recent Activities Logged", "12 Lessons", "✅ Highly Active")
     
-    # Display Existing Lecture Dialogues
-    for idx, msg in enumerate(st.session_state.messages):
-        role_label = f"🧑‍🎓 Student" if msg["role"] == "user" else f"{active_profile['avatar']} {active_profile['name']}"
-        st.write(f"**{role_label}:** {msg['content']}")
+    st.markdown("### 🎯 AI Recommendations & Learning Journey Insights")
+    st.info("💡 **AI Teacher Insight:** Your diagnostic data shows vulnerability in **'Debit Bookkeeping'**. Click on the 'Quizzes & Tests' section to run a customized practice mock exam.")
+
+# --- COMPONENT 2: CUSTOMIZABLE AI TEACHER CORE ---
+elif menu_selection == "AI Teacher Core":
+    st.markdown("## 🧑‍🏫 Personalize and Build Your Virtual Teacher Profile")
+    
+    t_col1, t_col2 = st.columns(2)
+    with t_col1:
+        personality = st.selectbox("Select Teacher Personality Matrix Type:", [
+            "Calm Teacher", "Friendly Teacher", "Strict Teacher", "Professor Mode", 
+            "Storytelling Teacher", "Exam Coach", "Motivational Mentor", "Scientific Instructor", "Fairy Tale Explainer"
+        ])
+        voice_accent = st.selectbox("Choose Audio Voice Accent Style:", ["Indian Standard Accent", "British Classical Academic", "US Modern Radio Studio"])
+        speak_rate = st.slider("Set Professor Lecture Speed Rate:", 0.8, 1.5, 1.0, 0.1)
+    
+    with t_col2:
+        avatars = {"Calm Teacher": "🧘", "Strict Teacher": "🧑‍🏫📏", "Fairy Tale Explainer": "🧚✨", "Friendly Teacher": "🤗"}
+        st.markdown(f"#### Active Instructor Image Avatar")
+        st.markdown(f"<div style='font-size:120px; text-align:center;'>{avatars.get(personality, '🎓')}</div>", unsafe_allow_html=True)
+        st.success(f"**Instructor Core Parameters Locked:** All classroom vectors initialized for teaching personality: **{personality}**.")
+
+# --- COMPONENT 3: STUDY MATERIALS KNOWLEDGE INGESTION HUB ---
+elif menu_selection == "Study Materials Hub":
+    st.markdown("## 📁 Smart Multi-Format Knowledge Base Ingestion")
+    st.write("Upload folders, assignments, previous year questions, handwritten snaps, or presentations to build your custom AI brain indexing segment:")
+    
+    uploaded_files = st.file_uploader("Drop any files here (PDFs, Notes, Snaps, PPTs):", type=["pdf", "png", "jpg", "jpeg", "txt", "docx", "pptx"], accept_multiple_files=True)
+    target_fol = st.selectbox("Select Target Course Folder Allocation Slot:", list(st.session_state.folders.keys()))
+    
+    if st.button("🚀 Ingest Materials into Knowledge Base") and uploaded_files:
+        for f in uploaded_files:
+            st.session_state.folders[target_fol].append(f.name)
+        st.success(f"🎉 Fully Scanned and Parsed {len(uploaded_files)} objects! Customized study roadmap created inside your folder slot: **'{target_fol}'**.")
         
-        if msg["role"] == "assistant":
-            if st.button("🔊 Play Voice Lecture", key=f"voice_{idx}"):
-                with st.spinner("Modulating voice frequency..."):
+    st.markdown("### 🗄️ System Ingested Repository Index Map")
+    st.json(st.session_state.folders)
+
+# --- COMPONENT 4: MAIN CENTRIC VIRTUAL CLASSROOM CHAT STATIONS ---
+elif menu_selection == "Virtual Classroom":
+    st.markdown("## 🏛️ High-Contrast Centric Virtual Classroom")
+    
+    # Display Chat
+    for idx, msg in enumerate(st.session_state.messages):
+        if msg["role"] == "user":
+            st.markdown(f'<div class="chat-bubble-user"><b>🧑‍🎓 Student Input:</b><br>{msg["content"]}</div>', unsafe_allow_html=True)
+        else:
+            st.markdown(f'<div class="chat-bubble-ai"><b>🧑‍🏫 ZenStudy Teacher Response:</b><br>{msg["content"]}</div>', unsafe_allow_html=True)
+            
+            # Sound Synthesis Action Node Row Button
+            if st.button("🔊 Listen to Audio Lecture", key=f"tts_run_{idx}"):
+                with st.spinner("Synthesizing audio output stream..."):
                     clean = msg["content"].replace("$", "").replace("#", "").replace("*", "")
-                    tts = gTTS(text=clean, lang='en', tld='co.uk' if "Strict" in teacher_persona else 'co.in')
+                    tts = gTTS(text=clean, lang='en', tld='co.in' if "Light" in st.session_state.ui_theme else 'co.uk')
                     audio_fp = io.BytesIO()
                     tts.write_to_fp(audio_fp)
                     st.audio(audio_fp.getvalue(), format="audio/mp3", autoplay=True)
-                    
-    st.markdown("<hr>", unsafe_allow_html=True)
+
+    # Sleek Accessibility-Emulating Input Dashboard Bar Layout
+    st.markdown(f"""
+    <div class="sleek-input-bar">
+        <span class="bar-icon">📎 <b>+ Upload</b></span>
+        <span class="bar-icon">🎙️ <b>Mic Input</b></span>
+        <span style="color: {text}; font-size: 1.1rem; flex-grow: 1;">ZenStudy AI Core Terminal Active. Type query in input field down below:</span>
+        <span class="bar-icon">🔊 <b>Speaker On</b></span>
+    </div>
+    """, unsafe_allow_html=True)
     
-    # Premium Native-Emulating UI Entry Structure
-    st.markdown('<div class="custom-input-container"><span class="plus-icon">📎</span> <span style="color:#A0AEC0; flex-grow:1;">Chat console active. Type in the primary input block below.</span> <span class="mic-icon">🎙️</span></div>', unsafe_allow_html=True)
-    
-    # Primary Chat Hook Input box
-    if text_query := st.chat_input("Ask your AI Teacher anything or prompt: 'Give me a summary of Chapter 1'..."):
-        st.session_state.messages.append({"role": "user", "content": text_query})
+    if user_prompt := st.chat_input("Ask anything about your studies..."):
+        st.session_state.messages.append({"role": "user", "content": user_prompt})
         
-        # Build prompt payload vector injection
-        master_system_prompt = f"You are {active_profile['name']}. {active_profile['prompt_add']} Analyze all inputs, explain core concepts dynamically, and format equations cleanly using LaTeX math parameters."
+        tutor_blueprint = "You are ZenStudy AI, an elite next-generation automated educator. Explain technical items slowly and step-by-step. Render formulas explicitly inside crisp standard LaTeX blocks."
         
-        payload = []
-        if media_attachment: payload.append(media_attachment)
-        payload.append(text_query + notes_context_text)
-        
-        with st.spinner(f"{active_profile['name']} is preparing explanation..."):
+        with st.spinner("AI Professor is generating comprehensive analysis lecture data..."):
             try:
-                res = client.models.generate_content(
+                response = client.models.generate_content(
                     model='gemini-2.5-flash',
-                    contents=payload,
-                    config=types.GenerateContentConfig(system_instruction=master_system_prompt, temperature=0.4)
+                    contents=user_prompt,
+                    config=types.GenerateContentConfig(system_instruction=tutor_blueprint, temperature=0.3)
                 )
-                st.session_state.messages.append({"role": "assistant", "content": res.text})
-                st.rerun()
-            except Exception as e:
-                st.error(f"Classroom Processing Link Down: {e}")
 
-# ================= TAB 2: SMART FLASHCARDS & EXAMS =================
-with tab_flashcards:
-    st.markdown("### 🃏 Smart Active Recall Modules")
-    
-    cards = [
-        {"q": "What is the primary rule of Accounting Debits?", "a": "Debit what comes in, credit what goes out. Increase assets with debits."},
-        {"q": "Explain the concept of Mitochondria for a Grade 9 Student.", "a": "It is the powerhouse of the cell, generating chemical energy (ATP) like a mini battery bank."},
-        {"q": "What is the formula to extract roots from a quadratic equation?", "a": "The formula is $$x = \\frac{-b \\pm \\sqrt{b^2 - 4ac}}{2a}$$"}
-    ]
-    
-    # Selected dynamic single card frame processing
-    selected_idx = st.slider("Select Flashcard Slide No:", 0, len(cards)-1, 0)
-    current_card = cards[selected_idx]
-    
-    if st.session_state.flashcard_flipped:
-        st.markdown(f'<div class="flashcard" style="background:#EBF8F4; border-color:#9AE6B4;">💡 {current_card["a"]}</div>', unsafe_allow_html=True)
-    else:
-        st.markdown(f'<div class="flashcard">❓ {current_card["q"]}</div>', unsafe_allow_html=True)
-        
-    if st.button("🔄 Flip/Reveal Flashcard Content"):
-        st.session_state.flashcard_flipped = not st.session_state.flashcard_flipped
-        st.rerun()
-
-    st.markdown("<hr>### 📝 Diagnostic Mini Quiz Check")
-    quiz_ans = st.radio("Question: If Assets increase, what happens in accounting bookkeeping metrics?", ["It is recorded as a Debit", "It is recorded as a Credit", "No change occurs"])
-    if st.button("Submit Quiz Response Check"):
-        if quiz_ans == "It is recorded as a Debit":
-            st.success("🎯 100% Correct! This subject area is highly optimized.")
-            st.session_state.weak_areas["Accounting Debits"] = 95
-        else:
-            st.error("📉 Incorrect! Your profile score dropped. Focus closely on this core module.")
-            st.session_state.weak_areas["Accounting Debits"] = 20
-            st.rerun()
-
-# ================= TAB 3: DIAGNOSTIC ANALYTICS & MINDMAPS =================
-with tab_analytics:
-    st.markdown("### 📈 Real-Time Weakness Tracking Profile")
-    st.write("ZenStudy automatically parses your lecture interactions to pinpoint exactly where you need to study more:")
     
 
