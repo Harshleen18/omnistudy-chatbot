@@ -172,8 +172,15 @@ elif menu_selection == "Virtual Classroom":
                 res = requests.post(url, headers=headers, json=payload)
                 res_json = res.json()
                 
+                                # Fire raw HTTP session request
+                res = requests.post(url, headers=headers, json=payload)
+                res_json = res.json()
+                
                 if res.status_code == 200:
                     ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
                     st.session_state.messages.append({"role": "assistant", "content": ai_response})
                     st.rerun()
                 elif "error" in res_json:
+                    st.error(f"Google Brain Refusal ({res.status_code}): {res_json['error']['message']}")
+                else:
+                    st.error(f"Unexpected connectivity response code: {res.status_code}")
