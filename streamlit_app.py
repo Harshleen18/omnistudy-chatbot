@@ -1,5 +1,5 @@
 import streamlit as st
-import google.generativeai as genai
+import requests
 from gtts import gTTS
 import pandas as pd
 import io
@@ -49,9 +49,8 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ---------------- 3. AI COGNITIVE BRAIN INITIALIZATION ----------------
-# Using configure() natively solves the 401 unauthenticated issue with your specific 'AQ.' API key
+# Storing your newly generated 'AQ.' key layout
 api_key = st.secrets.get("GEMINI_API_KEY", "")
-genai.configure(api_key=api_key)
 
 # ---------------- 4. LEFT SIDEBAR NAVIGATION MENU ----------------
 with st.sidebar:
@@ -137,42 +136,44 @@ elif menu_selection == "Virtual Classroom":
         st.session_state.messages.append({"role": "user", "content": user_query})
         st.rerun()
 
-    # Dynamic Generator Context Logic processing the latest prompt entry
+    # Dynamic Generator Context Logic bypassing the 401 unauthenticated bug via explicit headers
     if len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] == "user":
         with st.spinner("AI Teacher is thinking..."):
             try:
                 persona = st.session_state.get("personality", "Calm Teacher")
-                system_instruction = f"You are an expert academic tutor operating in a '{persona}' persona mode. Explain concepts clearly and stay completely in character."
+                system_instruction = f"You are an expert academic tutor operating in a '{persona}' persona mode. Explain concepts clearly."
                 
-                # Format conversation history for the legacy structural layout requirement
-                formatted_history = []
-                for msg in st.session_state.messages[:-1]:
-                    formatted_history.append({
-                        "role": "user" if msg["role"] == "user" else "model",
-                        "parts": [msg["content"]]
+                # Format pipeline message context to match standard payload formats
+                contents_payload = []
+                for msg in st.session_state.messages:
+                    role_id = "user" if msg["role"] == "user" else "model"
+                    contents_payload.append({
+                        "role": role_id,
+                        "parts": [{"text": msg["content"]}]
                     })
                 
-                # Initialize the generative framework model context safely
-                model = genai.GenerativeModel(
-                    model_name='gemini-1.5-flash',
-                    system_instruction=system_instruction
-                )
+                # Direct API execution url path
+                url = "https://googleapis.com"
                 
-                # Initiate communication socket sequence pipeline
-                chat = model.start_chat(history=formatted_history)
-                response = chat.send_message(st.session_state.messages[-1]["content"])
+                # Setup custom network routing to force the backend to accept the AQ key format
+                headers = {
+                    "Content-Type": "application/json",
+                    "x-goog-api-key": api_key
+                }
                 
-                if response.text:
-                    st.session_state.messages.append({"role": "assistant", "content": response.text})
+                payload = {
+                    "contents": contents_payload,
+                    "systemInstruction": {
+                        "parts": [{"text": system_instruction}]
+                    }
+                }
+                
+                # Fire raw HTTP session request
+                res = requests.post(url, headers=headers, json=payload)
+                res_json = res.json()
+                
+                if res.status_code == 200:
+                    ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
                     st.rerun()
-                else:
-                    st.error("Received an empty response from the AI brain.")
-                    
-            except Exception as e:
-                st.error(f"Failed to communicate with AI Faculty Brain: {str(e)}")
-
-else:
-    st.markdown(f"## 🛠️ {menu_selection} Workspace")
-    st.info("This sub-module workspace interface layout is currently under construction.")
-
-
+                elif "error" in res_json:
