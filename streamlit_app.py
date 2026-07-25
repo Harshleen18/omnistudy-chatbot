@@ -148,7 +148,8 @@ if menu_selection == "Virtual Classroom":
                         "parts": [{"text": msg["content"]}]
                     })
                 
-                url = f"https://googleapis.com{api_key}"
+                # FIXED: Isolated query parameter URL layout. No external headers or variables used.
+                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
                 headers = {"Content-Type": "application/json"}
                 payload = {"contents": contents_payload, "systemInstruction": {"parts": [{"text": system_instruction}]}}
                 
@@ -170,4 +171,4 @@ if menu_selection == "Virtual Classroom":
             except Exception as e:
                 st.error(f"Network Pipeline Failure: {str(e)}")
 
-# Fallback block for all undeveloped menu items to keep everything flat and clean
+
