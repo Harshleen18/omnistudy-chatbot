@@ -1,5 +1,6 @@
 import streamlit as st
-import requests
+from google import genai
+from google.genai import types
 from gtts import gTTS
 import pandas as pd
 import io
@@ -49,7 +50,10 @@ st.markdown(f"""
 """, unsafe_allow_html=True)
 
 # ---------------- 3. AI COGNITIVE BRAIN INITIALIZATION ----------------
+# Fetch the key from secure secrets storage
 api_key = st.secrets.get("GEMINI_API_KEY", "")
+# Initialize the official Google GenAI Client with explicit credential binding
+client = genai.Client(api_key=api_key)
 
 # ---------------- 4. LEFT SIDEBAR NAVIGATION MENU ----------------
 with st.sidebar:
@@ -132,43 +136,43 @@ if menu_selection == "Virtual Classroom":
         st.session_state.messages.append({"role": "user", "content": user_query})
         st.rerun()
 
-    # Dynamic Generator Context Logic processing via direct HTTP requests
+    # Dynamic Chat Completion Processing using the official SDK wrapper
     if len(st.session_state.messages) > 0 and st.session_state.messages[-1]["role"] == "user":
         with st.spinner("AI Teacher is thinking..."):
             try:
                 persona = st.session_state.get("personality", "Calm Teacher")
                 system_instruction = f"You are an expert academic tutor operating in a '{persona}' persona mode. Explain concepts clearly."
                 
-                # Format pipeline message context to match standard payload formats
-                contents_payload = []
+                # Format full structural chat history logs natively for the modern SDK
+                contents_history = []
                 for msg in st.session_state.messages:
                     role_id = "user" if msg["role"] == "user" else "model"
-                    contents_payload.append({
-                        "role": role_id,
-                        "parts": [{"text": msg["content"]}]
-                    })
+                    contents_history.append(
+                        types.Content(
+                            role=role_id,
+                            parts=[types.Part.from_text(text=msg["content"])]
+                        )
+                    )
                 
-                # FIXED: Isolated query parameter URL layout. No external headers or variables used.
-                url = f"https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent?key={api_key}"
-                headers = {"Content-Type": "application/json"}
-                payload = {"contents": contents_payload, "systemInstruction": {"parts": [{"text": system_instruction}]}}
+                # Execute inference using the modern model tier setup
+                response = client.models.generate_content(
+                    model='gemini-2.5-flash',
+                    contents=contents_history,
+                    config=types.GenerateContentConfig(
+                        system_instruction=system_instruction,
+                        temperature=0.7,
+                    )
+                )
                 
-                # Fire raw HTTP session request
-                res = requests.post(url, headers=headers, json=payload)
-                
-                if res.status_code == 200:
-                    res_json = res.json()
-                    ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
-                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                if response.text:
+                    st.session_state.messages.append({"role": "assistant", "content": response.text})
                     st.rerun()
                 else:
-                    st.error(f"Google Brain Refusal ({res.status_code})")
-                    try:
-                        st.write(res.json()["error"]["message"])
-                    except Exception:
-                        st.write(res.text)
+                    st.error("Received an empty content stream from Gemini.")
                     
             except Exception as e:
-                st.error(f"Network Pipeline Failure: {str(e)}")
+                st.error(f"SDK Core Operational Error: {str(e)}")
 
+# Fallback block for all undeveloped menu items to keep everything flat and clean
+unbuilt_workspaces = ["Flashcard Center", "Mind Maps", "Quizzes & Tests", "Analytics Panel", "Focus Zone", "Settings"]
 
