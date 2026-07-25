@@ -148,28 +148,27 @@ if menu_selection == "Virtual Classroom":
                         "parts": [{"text": msg["content"]}]
                     })
                 
-                # Direct API execution url path
-                url = "https://googleapis.com"
-                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                # FIXED: Bypassing the network value error by passing the key explicitly inside the request URL string
+                url = f"https://googleapis.com{api_key}"
+                headers = {"Content-Type": "application/json"}
                 payload = {"contents": contents_payload, "systemInstruction": {"parts": [{"text": system_instruction}]}}
                 
                 # Fire raw HTTP session request
                 res = requests.post(url, headers=headers, json=payload)
-                res_json = res.json()
                 
+                # Safeguard verification: explicitly process json extraction only if network structure is active
                 if res.status_code == 200:
+                    res_json = res.json()
                     ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
                     st.session_state.messages.append({"role": "assistant", "content": ai_response})
                     st.rerun()
-                
-                if res.status_code != 200:
+                else:
                     st.error(f"Google Brain Refusal ({res.status_code})")
-                    if "error" in res_json:
-                        st.write(res_json["error"]["message"])
+                    try:
+                        st.write(res.json()["error"]["message"])
+                    except Exception:
+                        st.write(res.text)
                     
             except Exception as e:
-                st.error(f"Network Pipeline Failure: {str(e)}")
-
-# Fallback block for all undeveloped menu items to keep everything flat and clean
 
 
