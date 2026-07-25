@@ -194,14 +194,21 @@ if menu_selection == "Virtual Classroom":
                     err_msg = str(e)
                     if "401" in err_msg or "UNAUTHENTICATED" in err_msg or "invalid authentication" in err_msg or "API key" in err_msg or "ACCESS_TOKEN_TYPE_UNSUPPORTED" in err_msg:
                         st.error("""
-                        ❌ **Authentication Error (401):** The Gemini API Key is invalid, expired, or unsupported.
+                        ❌ **Authentication Error (401 / ACCESS_TOKEN_TYPE_UNSUPPORTED):** The Gemini API Key was rejected by Google.
 
-                        **Common Cause (ACCESS_TOKEN_TYPE_UNSUPPORTED):**
-                        Google Gemini now requires secure **Auth Keys** (starting with `AQ...`) and rejects standard unrestricted keys (starting with `AIza...`).
+                        This is a common issue caused by Google's new security policy or service account binding. Here is how to fix it:
 
-                        **How to Fix:**
-                        1. Go to **Google AI Studio** and create a new API Key (which will automatically be an Auth Key starting with `AQ...`).
-                        2. Go to the **Settings** workspace in the sidebar and paste your new key.
+                        ### 🛠️ Step-by-Step Solutions:
+
+                        **Solution A: For `AQ...` Keys (New Auth Keys)**
+                        1. The `ACCESS_TOKEN_TYPE_UNSUPPORTED` error on `AQ...` keys often happens due to an organization-level policy or service account permission mismatch.
+                        2. **To fix this instantly**: Go to **Google AI Studio**, click on the project dropdown, and **create a new lightweight project** (one not tied to an enterprise organization).
+                        3. Generate a new API Key inside that new project, and use it here in the **Settings** workspace.
+
+                        **Solution B: For `AIza...` Keys (Standard Keys)**
+                        1. Google now rejects unrestricted `AIza...` keys with a 401 error.
+                        2. **To fix this**: Go to the **Google AI Studio API Keys** page, locate your unrestricted key, and click **"Add restrictions"** -> **"Restrict to Gemini API only"**.
+                        3. Alternatively, restrict it inside the **Google Cloud Console Credentials** page under API Restrictions.
                         """)
                     else:
                         st.error(f"SDK Core Operational Error: {err_msg}")
@@ -213,9 +220,17 @@ if menu_selection == "Settings":
 
     st.markdown("""
     💡 **Important Note on Gemini API Keys:**
-    Google Gemini has transitioned away from standard traffic keys (starting with `AIza...`).
-    - If you are using a new key, make sure it is an **Auth Key** (starting with `AQ...`), which is now the default in Google AI Studio.
-    - If you are getting an `ACCESS_TOKEN_TYPE_UNSUPPORTED` (401) error, it means your key is unrestricted or standard. You must either generate a new **Auth Key** (starts with `AQ...`) in AI Studio, or apply explicit restrictions to your `AIza...` key in the Google Cloud Console.
+    Google Gemini has transitioned away from standard unrestricted traffic keys (starting with `AIza...`).
+
+    If you encounter the `401 ACCESS_TOKEN_TYPE_UNSUPPORTED` error, here is how to resolve it:
+
+    - **For `AQ...` Keys (New Auth Keys):**
+      The `ACCESS_TOKEN_TYPE_UNSUPPORTED` error on `AQ...` keys often happens due to an organization-level policy or service account permission mismatch.
+      **To fix this instantly:** Go to **Google AI Studio**, click on the project dropdown, and **create a new lightweight project** (one not tied to an enterprise organization). Then generate a new API Key inside that new project.
+
+    - **For `AIza...` Keys (Standard Keys):**
+      Google now rejects unrestricted `AIza...` keys with a 401 error.
+      **To fix this:** Go to the **Google AI Studio API Keys** page, locate your unrestricted key, and click **"Add restrictions"** -> **"Restrict to Gemini API only"**.
     """)
 
     user_key_input = st.text_input("Enter your Gemini API Key:", value=st.session_state.get("custom_api_key", ""), type="password")
