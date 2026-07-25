@@ -148,7 +148,6 @@ if menu_selection == "Virtual Classroom":
                         "parts": [{"text": msg["content"]}]
                     })
                 
-                # FIXED: Bypassing the network value error by passing the key explicitly inside the request URL string
                 url = f"https://googleapis.com{api_key}"
                 headers = {"Content-Type": "application/json"}
                 payload = {"contents": contents_payload, "systemInstruction": {"parts": [{"text": system_instruction}]}}
@@ -156,7 +155,6 @@ if menu_selection == "Virtual Classroom":
                 # Fire raw HTTP session request
                 res = requests.post(url, headers=headers, json=payload)
                 
-                # Safeguard verification: explicitly process json extraction only if network structure is active
                 if res.status_code == 200:
                     res_json = res.json()
                     ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
@@ -170,5 +168,6 @@ if menu_selection == "Virtual Classroom":
                         st.write(res.text)
                     
             except Exception as e:
+                st.error(f"Network Pipeline Failure: {str(e)}")
 
-
+# Fallback block for all undeveloped menu items to keep everything flat and clean
