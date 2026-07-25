@@ -172,7 +172,7 @@ elif menu_selection == "Virtual Classroom":
                 res_json = res.json()
                 
                 if res.status_code == 200:
-                    # Extracted and structured flat parsing logic to completely eliminate indentation slips
+                    # Safely drilling JSON lists in a single flat path execution to protect indentation layout
                     ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
                     st.session_state.messages.append({"role": "assistant", "content": ai_response})
                     st.rerun()
