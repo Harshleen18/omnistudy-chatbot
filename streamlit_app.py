@@ -192,8 +192,17 @@ if menu_selection == "Virtual Classroom":
 
                 except Exception as e:
                     err_msg = str(e)
-                    if "401" in err_msg or "UNAUTHENTICATED" in err_msg or "invalid authentication" in err_msg or "API key" in err_msg:
-                        st.error("❌ **Authentication Error (401):** The Gemini API Key is invalid or expired. Please go to the **Settings** workspace in the sidebar and enter a valid Gemini API Key.")
+                    if "401" in err_msg or "UNAUTHENTICATED" in err_msg or "invalid authentication" in err_msg or "API key" in err_msg or "ACCESS_TOKEN_TYPE_UNSUPPORTED" in err_msg:
+                        st.error("""
+                        ❌ **Authentication Error (401):** The Gemini API Key is invalid, expired, or unsupported.
+
+                        **Common Cause (ACCESS_TOKEN_TYPE_UNSUPPORTED):**
+                        Google Gemini now requires secure **Auth Keys** (starting with `AQ...`) and rejects standard unrestricted keys (starting with `AIza...`).
+
+                        **How to Fix:**
+                        1. Go to **Google AI Studio** and create a new API Key (which will automatically be an Auth Key starting with `AQ...`).
+                        2. Go to the **Settings** workspace in the sidebar and paste your new key.
+                        """)
                     else:
                         st.error(f"SDK Core Operational Error: {err_msg}")
 
@@ -201,6 +210,14 @@ if menu_selection == "Virtual Classroom":
 if menu_selection == "Settings":
     st.markdown("## ⚙️ Settings")
     st.markdown("### API Configuration")
+
+    st.markdown("""
+    💡 **Important Note on Gemini API Keys:**
+    Google Gemini has transitioned away from standard traffic keys (starting with `AIza...`).
+    - If you are using a new key, make sure it is an **Auth Key** (starting with `AQ...`), which is now the default in Google AI Studio.
+    - If you are getting an `ACCESS_TOKEN_TYPE_UNSUPPORTED` (401) error, it means your key is unrestricted or standard. You must either generate a new **Auth Key** (starts with `AQ...`) in AI Studio, or apply explicit restrictions to your `AIza...` key in the Google Cloud Console.
+    """)
+
     user_key_input = st.text_input("Enter your Gemini API Key:", value=st.session_state.get("custom_api_key", ""), type="password")
     if st.button("Save API Key"):
         st.session_state.custom_api_key = user_key_input
