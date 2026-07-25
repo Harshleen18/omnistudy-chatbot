@@ -152,7 +152,7 @@ elif menu_selection == "Virtual Classroom":
                     })
                 
                 # Direct API execution url path
-                url = "https://generativelanguage.googleapis.com/v1beta/models/gemini-1.5-flash:generateContent"
+                url = "https://googleapis.com"
                 
                 # Setup custom network routing to force backend to accept AQ keys
                 headers = {
@@ -172,10 +172,9 @@ elif menu_selection == "Virtual Classroom":
                 res_json = res.json()
                 
                 if res.status_code == 200:
-                    try:
-                        # FIXED MANUALLY & TESTED: Added explicit array index constraints [0]
-                        ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
-                        st.session_state.messages.append({"role": "assistant", "content": ai_response})
-                        st.rerun()
-                    except (KeyError, IndexError, TypeError):
+                    # Extracted and structured flat parsing logic to completely eliminate indentation slips
+                    ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
+                    st.session_state.messages.append({"role": "assistant", "content": ai_response})
+                    st.rerun()
+                elif "error" in res_json:
 
