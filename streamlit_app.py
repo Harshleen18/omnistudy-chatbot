@@ -80,11 +80,10 @@ if menu_selection == "Dashboard":
     col1.metric("Overall Subject Mastery", "78%", "🧠 Optimal")
     col2.metric("Upcoming Practice Exams", "2 Scheduled", "📅 Due")
     col3.metric("Completed Chapters", "14 Lessons", "✅ Progressing")
-    
     st.markdown("### 🎯 AI Personalized Recommendations")
     st.info("💡 **AI Insight:** Your performance charts show a quick drop in 'Debit Bookkeeping'. Click on the **Quizzes & Tests** section to take a 5-minute booster test!")
 
-elif menu_selection == "AI Teacher Set":
+if menu_selection == "AI Teacher Set":
     st.markdown("## 🧑‍🏫 Personalize Your Virtual AI Faculty")
     t_col1, t_col2 = st.columns(2)
     with t_col1:
@@ -100,27 +99,25 @@ elif menu_selection == "AI Teacher Set":
         st.markdown(f"<div style='font-size:100px; text-align:center;'>{avatars.get(st.session_state.personality, '🎓')}</div>", unsafe_allow_html=True)
         st.success(f"**Faculty Blueprint Locked In:** Workspace initialized for: {st.session_state.personality}.")
 
-elif menu_selection == "Study Materials Hub":
+if menu_selection == "Study Materials Hub":
     st.markdown("## 📁 Ingest Materials into Knowledge Base")
     uploaded_files = st.file_uploader("Drop any study files here:", type=["pdf", "png", "jpg", "jpeg", "txt", "docx", "pptx"], accept_multiple_files=True)
     target_fol = st.selectbox("Assign to Subject Folder Target Location:", list(st.session_state.folders.keys()))
-    
     if st.button("🚀 Ingest & Process Into Knowledge Base") and uploaded_files:
         for f in uploaded_files:
             st.session_state.folders[target_fol].append(f.name)
         st.success(f"🎉 Fully Scanned and Parsed {len(uploaded_files)} files into folder: **'{target_fol}'**.")
     st.json(st.session_state.folders)
 
-elif menu_selection == "Virtual Classroom":
+if menu_selection == "Virtual Classroom":
     st.markdown("## 🏛️ Centric Classroom Interface Console")
     
     # Render historical conversation logs
     for idx, msg in enumerate(st.session_state.messages):
         if msg["role"] == "user":
             st.markdown(f'<div class="chat-bubble-user"><b>🧑‍🎓 Student:</b><br>{msg["content"]}</div>', unsafe_allow_html=True)
-        else:
+        if msg["role"] == "assistant":
             st.markdown(f'<div class="chat-bubble-ai"><b>🧑‍🏫 AI Teacher ({st.session_state.get("personality", "General Setup")}):</b><br>{msg["content"]}</div>', unsafe_allow_html=True)
-            
             if st.button("🔊 Play Voice Lecture", key=f"audio_run_{idx}"):
                 with st.spinner("Generating audio transcription..."):
                     clean_str = msg["content"].replace("$", "").replace("#", "").replace("*", "")
@@ -153,28 +150,26 @@ elif menu_selection == "Virtual Classroom":
                 
                 # Direct API execution url path
                 url = "https://googleapis.com"
-                
-                # Setup custom network routing to force backend to accept AQ keys
-                headers = {
-                    "Content-Type": "application/json",
-                    "x-goog-api-key": api_key
-                }
-                
-                payload = {
-                    "contents": contents_payload,
-                    "systemInstruction": {
-                        "parts": [{"text": system_instruction}]
-                    }
-                }
+                headers = {"Content-Type": "application/json", "x-goog-api-key": api_key}
+                payload = {"contents": contents_payload, "systemInstruction": {"parts": [{"text": system_instruction}]}}
                 
                 # Fire raw HTTP session request
                 res = requests.post(url, headers=headers, json=payload)
                 res_json = res.json()
                 
                 if res.status_code == 200:
-                    # Safely drilling JSON lists in a single flat path execution to protect indentation layout
                     ai_response = res_json['candidates'][0]['content']['parts'][0]['text']
                     st.session_state.messages.append({"role": "assistant", "content": ai_response})
                     st.rerun()
-                elif "error" in res_json:
+                
+                if res.status_code != 200:
+                    st.error(f"Google Brain Refusal ({res.status_code})")
+                    if "error" in res_json:
+                        st.write(res_json["error"]["message"])
+                    
+            except Exception as e:
+                st.error(f"Network Pipeline Failure: {str(e)}")
+
+# Fallback block for all undeveloped menu items to keep everything flat and clean
+
 
