@@ -191,7 +191,11 @@ if menu_selection == "Virtual Classroom":
                         st.error("Received an empty content stream from Gemini.")
 
                 except Exception as e:
-                    st.error(f"SDK Core Operational Error: {str(e)}")
+                    err_msg = str(e)
+                    if "401" in err_msg or "UNAUTHENTICATED" in err_msg or "invalid authentication" in err_msg or "API key" in err_msg:
+                        st.error("❌ **Authentication Error (401):** The Gemini API Key is invalid or expired. Please go to the **Settings** workspace in the sidebar and enter a valid Gemini API Key.")
+                    else:
+                        st.error(f"SDK Core Operational Error: {err_msg}")
 
 # Configure Settings workspace
 if menu_selection == "Settings":
